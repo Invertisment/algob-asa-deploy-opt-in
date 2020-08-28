@@ -1,0 +1,10 @@
+default:
+  timestamp: 1598609260667
+  metadata: {}
+  asa:
+    myASA:
+      creator: 7MVJBISTHV52Q2JXTCWVTBIQM47K44BLRPG7KOFZHBLEEVDNWLSCPBJJ6I
+      txId: 5SIZMUR4XZZCERF5JGANXHOH4AYHHMFX2ILGCX7TBGHZG6L4I3JQ
+      assetIndex: 121
+      confirmedRound: 23894
+  asc: {}
