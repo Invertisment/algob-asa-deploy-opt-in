@@ -2,7 +2,7 @@
 myASA:
   total: 1
   decimals: 0
-  defaultFrozen: true
+  defaultFrozen: false
   unitName: "unitName"
   url: "url"
   # User may get "signature validation failed" from node if shorter hash is used.

@@ -88,15 +88,16 @@ async function asaOptIn(deployer, optInAccount, assetID) {
   // we are not closing out an asset
   let closeRemainderTo = undefined;
   // We are sending 0 assets
-  amount = 0;
-
   const note = undefined;
+
+  // transferring 0 will enable future transfers
+  const amount = 0;
 
   // signing and sending "txn" allows sender to begin accepting asset specified by creator and index
   let opttxn = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, recipient, closeRemainderTo, revocationTarget,
     amount, note, assetID, params);
 
-  // Must be signed by the account wishing to opt in to the asset    
+  // Must be signed by the account wishing to opt in to the asset
   rawSignedTxn = opttxn.signTxn(optInAccount.sk);
   let opttx = (await deployer.algodClient.sendRawTransaction(rawSignedTxn).do());
   console.log("Transaction : " + opttx.txId);
@@ -108,39 +109,39 @@ async function asaOptIn(deployer, optInAccount, assetID) {
   //await printAssetHolding(algodclient, master, assetID);
 }
 
-//async function transferAsset(algodclient, fromAccount, toAccountAddr, amountMicroAlgos) {
-//  // Transfer New Asset:
-//
-//  // First update changing transaction parameters
-//  // We will account for changing transaction parameters
-//  // before every transaction in this example
-//
-//  params = await algodclient.getTransactionParams().do();
-//  //comment out the next two lines to use suggested fee
-//  params.fee = 1000;
-//  params.flatFee = true;
-//
-//  sender = account1.addr;
-//  recipient = master;
-//  revocationTarget = undefined;
-//  closeRemainderTo = undefined;
-//  //Amount of the asset to transfer
-//  amount = 700;
-//
-//  // signing and sending "txn" will send "amount" assets from "sender" to "recipient"
-//  let xtxn = algosdk.makeAssetTransferTxnWithSuggestedParams(sender, recipient, closeRemainderTo, revocationTarget,
-//    amount,  note, assetID, params);
-//  // Must be signed by the account sending the asset  
-//  rawSignedTxn = xtxn.signTxn(account1.sk)
-//  let xtx = (await algodclient.sendRawTransaction(rawSignedTxn).do());
-//  console.log("Transaction : " + xtx.txId);
-//  // wait for transaction to be confirmed
-//  await waitForConfirmation(algodclient, xtx.txId);
-//
-//
-//  console.log("Master Account = " + master);
-//  await printAssetHolding(algodclient, master, assetID);
-//}
+async function transferAsset(deployer, assetID, fromAccount, toAccountAddr, amount) {
+  // Transfer New Asset:
+
+  // First update changing transaction parameters
+  // We will account for changing transaction parameters
+  // before every transaction in this example
+
+  params = await deployer.algodClient.getTransactionParams().do();
+  //comment out the next two lines to use suggested fee
+  params.fee = 1000;
+  params.flatFee = true;
+
+  sender = fromAccount;
+  recipient = toAccountAddr;
+  revocationTarget = undefined;
+  closeRemainderTo = undefined;
+  note = undefined;
+  //Amount of the asset to transfer
+
+  // signing and sending "txn" will send "amount" assets from "sender" to "recipient"
+  let xtxn = algosdk.makeAssetTransferTxnWithSuggestedParams(sender.addr, recipient, closeRemainderTo, revocationTarget,
+    amount,  note, assetID, params);
+  // Must be signed by the account sending the asset
+  console.log("sender", sender, sender.sk)
+  rawSignedTxn = xtxn.signTxn(sender.sk)
+  let xtx = (await deployer.algodClient.sendRawTransaction(rawSignedTxn).do());
+  console.log("Transaction : " + xtx.txId);
+  // wait for transaction to be confirmed
+  await deployer.waitForConfirmation(xtx.txId);
+
+  //console.log("Master Account = " + master);
+  //await printAssetHolding(deployer.algodClient, master, assetID);
+}
 
 
 async function run(runtimeEnv, accounts, deployer) {
@@ -161,6 +162,11 @@ async function run(runtimeEnv, accounts, deployer) {
   await printCreatedAsset(deployer, asaCreatorAccount.addr, assetID);
 
   await asaOptIn(deployer, asaOptInAccount, assetID)
+
+  await printAssetHolding(deployer, asaCreatorAccount.addr, assetID);
+  await printAssetHolding(deployer, asaOptInAccount.addr, assetID);
+
+  await transferAsset(deployer, assetID, asaCreatorAccount, asaOptInAccount.addr, 1)
 
   await printAssetHolding(deployer, asaCreatorAccount.addr, assetID);
   await printAssetHolding(deployer, asaOptInAccount.addr, assetID);
