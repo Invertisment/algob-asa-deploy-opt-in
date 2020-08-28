@@ -3,65 +3,65 @@ const algosdk = require('algosdk');
 
 // Function used to print created asset for account and assetid
 async function printCreatedAsset (deployer, account, assetid) {
-    // note: if you have an indexer instance available it is easier to just use this
-    //     let accountInfo = await indexerClient.searchAccounts()
-    //    .assetID(assetIndex).do();
-    // and in the loop below use this to extract the asset for a particular account
-    // accountInfo['accounts'][idx][account]);
-    let accountInfo = await deployer.algodClient.accountInformation(account).do();
-    for (idx = 0; idx < accountInfo['created-assets'].length; idx++) {
-        let scrutinizedAsset = accountInfo['created-assets'][idx];
-        if (scrutinizedAsset['index'] == assetid) {
-            console.log("AssetID = " + scrutinizedAsset['index']);
-            let myparams = JSON.stringify(scrutinizedAsset['params'], undefined, 2);
-            console.log("params = " + myparams);
-            break;
-        }
+  // note: if you have an indexer instance available it is easier to just use this
+  //     let accountInfo = await indexerClient.searchAccounts()
+  //    .assetID(assetIndex).do();
+  // and in the loop below use this to extract the asset for a particular account
+  // accountInfo['accounts'][idx][account]);
+  let accountInfo = await deployer.algodClient.accountInformation(account).do();
+  for (idx = 0; idx < accountInfo['created-assets'].length; idx++) {
+    let scrutinizedAsset = accountInfo['created-assets'][idx];
+    if (scrutinizedAsset['index'] == assetid) {
+      console.log("AssetID = " + scrutinizedAsset['index']);
+      let myparams = JSON.stringify(scrutinizedAsset['params'], undefined, 2);
+      console.log("params = " + myparams);
+      break;
     }
+  }
 };
 
 // Function used to print asset holding for account and assetid
 async function printAssetHolding (deployer, account, assetid) {
-    // note: if you have an indexer instance available it is easier to just use this
-    //     let accountInfo = await indexerClient.searchAccounts()
-    //    .assetID(assetIndex).do();
-    // and in the loop below use this to extract the asset for a particular account
-    // accountInfo['accounts'][idx][account]);
-    let accountInfo = await deployer.algodClient.accountInformation(account).do();
-    for (idx = 0; idx < accountInfo['assets'].length; idx++) {
-        let scrutinizedAsset = accountInfo['assets'][idx];
-        if (scrutinizedAsset['asset-id'] == assetid) {
-            let myassetholding = JSON.stringify(scrutinizedAsset, undefined, 2);
-            console.log("assetholdinginfo = " + myassetholding);
-            break;
-        }
+  // note: if you have an indexer instance available it is easier to just use this
+  //     let accountInfo = await indexerClient.searchAccounts()
+  //    .assetID(assetIndex).do();
+  // and in the loop below use this to extract the asset for a particular account
+  // accountInfo['accounts'][idx][account]);
+  let accountInfo = await deployer.algodClient.accountInformation(account).do();
+  for (idx = 0; idx < accountInfo['assets'].length; idx++) {
+    let scrutinizedAsset = accountInfo['assets'][idx];
+    if (scrutinizedAsset['asset-id'] == assetid) {
+      let myassetholding = JSON.stringify(scrutinizedAsset, undefined, 2);
+      console.log("assetholdinginfo = " + myassetholding);
+      break;
     }
+  }
 };
 
 //// Transfer ALGO from MASTER to ACCOUNT.
 
 async function transferMicroAlgos(deployer, fromAccount, toAccountAddr, amountMicroAlgos) {
 
-    let params = await deployer.algodClient.getTransactionParams().do();
+  let params = await deployer.algodClient.getTransactionParams().do();
 
-    params.fee = 0;
-    params.flatFee = true;
-    const receiver = toAccountAddr;
-    let note = algosdk.encodeObj("ALGO PAID");
+  params.fee = 0;
+  params.flatFee = true;
+  const receiver = toAccountAddr;
+  let note = algosdk.encodeObj("ALGO PAID");
 
-    let txn = algosdk.makePaymentTxnWithSuggestedParams(
-      fromAccount.addr, receiver, amountMicroAlgos, undefined, note, params); 
+  let txn = algosdk.makePaymentTxnWithSuggestedParams(
+    fromAccount.addr, receiver, amountMicroAlgos, undefined, note, params); 
 
-    let signedTxn = txn.signTxn(fromAccount.sk);
-    let txId = txn.txID().toString();
-    console.log("Signed transaction with txID: %s", txId);
+  let signedTxn = txn.signTxn(fromAccount.sk);
+  let txId = txn.txID().toString();
+  console.log("Signed transaction with txID: %s", txId);
 
-    const pendingTx = await deployer.algodClient.sendRawTransaction(signedTxn).do();
-    return await deployer.waitForConfirmation(pendingTx.txId)
+  const pendingTx = await deployer.algodClient.sendRawTransaction(signedTxn).do();
+  return await deployer.waitForConfirmation(pendingTx.txId)
 
-    //let confirmedTxn = await deployer.algodClient.pendingTransactionInformation(txId).do();
-    //console.log("Transaction information: %o", confirmedTxn.txn.txn);
-    //console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
+  //let confirmedTxn = await deployer.algodClient.pendingTransactionInformation(txId).do();
+  //console.log("Transaction information: %o", confirmedTxn.txn.txn);
+  //console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
 }
 
 async function asaOptIn(deployer, optInAccount, assetID) {
@@ -143,7 +143,6 @@ async function transferAsset(deployer, assetID, fromAccount, toAccountAddr, amou
   //await printAssetHolding(deployer.algodClient, master, assetID);
 }
 
-
 async function run(runtimeEnv, accounts, deployer) {
   console.log("Script has started execution!")
 
@@ -155,7 +154,13 @@ async function run(runtimeEnv, accounts, deployer) {
   await transferMicroAlgos(deployer, masterAccount, asaCreatorAccount.addr, 1000000)
   await transferMicroAlgos(deployer, masterAccount, asaOptInAccount.addr, 1000000)
 
-  const asaInfo = await deployer.deployASA("myASA", { creator: asaCreatorAccount })
+  const asaInfo = await deployer.deployASA("myASA", {
+    creator: asaCreatorAccount
+    //totalFee: 1001,
+    //feePerByte: 10,
+    //firstValid: 10,
+    //validRounds: 1002
+  })
   console.log(asaInfo)
 
   const assetID = asaInfo.assetIndex
@@ -171,30 +176,6 @@ async function run(runtimeEnv, accounts, deployer) {
   await printAssetHolding(deployer, asaCreatorAccount.addr, assetID);
   await printAssetHolding(deployer, asaOptInAccount.addr, assetID);
 
-  //console.log(out)
-
-  //if (deployer.isDeployMode) {
-  //  await deployer.deployASA("myASA", { creator: deployer.accounts[0] })
-  //}
-  //// deploy using feePerByte
-  //if (deployer.isDeployMode) {
-  //  await deployer.deployASA("minimumASA1", {
-  //    creator: deployer.accounts[0],
-  //    //totalFee: 1001,
-  //    feePerByte: 10,
-  //    //firstValid: 10,
-  //    validRounds: 1002
-  //  })
-  //}
-  //if (deployer.isDeployMode) {
-  //  await deployer.deployASA("myASA", {
-  //    creator: deployer.accounts[0],
-  //    //totalFee: 1001,
-  //    feePerByte: 10,
-  //    //firstValid: 10,
-  //    validRounds: 1002
-  //  })
-  //}
   console.log("Script execution has finished!")
 }
 
