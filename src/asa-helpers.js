@@ -2,7 +2,7 @@
 const algosdk = require('algosdk');
 
 // Function used to print created asset for account and assetid
-async function printCreatedAsset (deployer, account, assetid) {
+exports.printCreatedAsset = async function (deployer, account, assetid) {
   // note: if you have an indexer instance available it is easier to just use this
   //     let accountInfo = await indexerClient.searchAccounts()
   //    .assetID(assetIndex).do();
@@ -12,16 +12,17 @@ async function printCreatedAsset (deployer, account, assetid) {
   for (idx = 0; idx < accountInfo['created-assets'].length; idx++) {
     let scrutinizedAsset = accountInfo['created-assets'][idx];
     if (scrutinizedAsset['index'] == assetid) {
-      console.log("AssetID = " + scrutinizedAsset['index']);
-      let myparams = JSON.stringify(scrutinizedAsset['params'], undefined, 2);
-      console.log("params = " + myparams);
+      console.log("Created ASA:", {
+        assetIndex: assetid,
+        params: scrutinizedAsset['params']
+      })
       break;
     }
   }
 };
 
-// Function used to print asset holding for account and assetid
-async function printAssetHolding (deployer, account, assetid) {
+// Print specific account's ASA info.
+exports.printAssetHolding = async function (deployer, account, assetid) {
   // note: if you have an indexer instance available it is easier to just use this
   //     let accountInfo = await indexerClient.searchAccounts()
   //    .assetID(assetIndex).do();
@@ -31,16 +32,21 @@ async function printAssetHolding (deployer, account, assetid) {
   for (idx = 0; idx < accountInfo['assets'].length; idx++) {
     let scrutinizedAsset = accountInfo['assets'][idx];
     if (scrutinizedAsset['asset-id'] == assetid) {
-      let myassetholding = JSON.stringify(scrutinizedAsset, undefined, 2);
-      console.log("assetholdinginfo = " + myassetholding);
+      console.log("Asset Holding Info:", scrutinizedAsset, accountInfo);
       break;
     }
   }
 };
 
-//// Transfer ALGO from MASTER to ACCOUNT.
+// Print account's ASA info. All at once.
+exports.printAssets = async function (deployer, account) {
+  let accountInfo = await deployer.algodClient.accountInformation(account).do();
+  console.log("Asset Holding Info:", accountInfo['assets']);
+  console.log("Account's ALGO (microalgos):", accountInfo["amount-without-pending-rewards"])
+}
 
-async function transferMicroAlgos(deployer, fromAccount, toAccountAddr, amountMicroAlgos) {
+//// Transfer ALGO
+exports.transferMicroAlgos = async function (deployer, fromAccount, toAccountAddr, amountMicroAlgos) {
 
   let params = await deployer.algodClient.getTransactionParams().do();
 
@@ -50,13 +56,17 @@ async function transferMicroAlgos(deployer, fromAccount, toAccountAddr, amountMi
   let note = algosdk.encodeObj("ALGO PAID");
 
   let txn = algosdk.makePaymentTxnWithSuggestedParams(
-    fromAccount.addr, receiver, amountMicroAlgos, undefined, note, params); 
+    fromAccount.addr, receiver, amountMicroAlgos, undefined, note, params);
 
   let signedTxn = txn.signTxn(fromAccount.sk);
   let txId = txn.txID().toString();
-  console.log("Signed transaction with txID: %s", txId);
-
   const pendingTx = await deployer.algodClient.sendRawTransaction(signedTxn).do();
+  console.log("transferring algo (in micro algos):", {
+    from: fromAccount.addr,
+    to: receiver,
+    amount: amountMicroAlgos,
+    txid: pendingTx.txId
+  })
   return await deployer.waitForConfirmation(pendingTx.txId)
 
   //let confirmedTxn = await deployer.algodClient.pendingTransactionInformation(txId).do();
@@ -64,7 +74,7 @@ async function transferMicroAlgos(deployer, fromAccount, toAccountAddr, amountMi
   //console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
 }
 
-async function asaOptIn(deployer, optInAccount, assetID) {
+exports.asaOptIn = async function (deployer, optInAccount, assetID) {
   // Opting in to an Asset:
   // Opting in to transact with the new asset
   // Allow accounts that want recieve the new asset
@@ -81,7 +91,7 @@ async function asaOptIn(deployer, optInAccount, assetID) {
 
   let sender = optInAccount.addr;
   let recipient = sender
-  // We set revocationTarget to undefined as 
+  // We set revocationTarget to undefined as
   // This is not a clawback operation
   let revocationTarget = undefined;
   // CloseReaminerTo is set to undefined as
@@ -100,7 +110,11 @@ async function asaOptIn(deployer, optInAccount, assetID) {
   // Must be signed by the account wishing to opt in to the asset
   rawSignedTxn = opttxn.signTxn(optInAccount.sk);
   let opttx = (await deployer.algodClient.sendRawTransaction(rawSignedTxn).do());
-  console.log("Transaction : " + opttx.txId);
+  console.log("ASA Opt-in:", {
+    forAccount: sender,
+    assetID: assetID,
+    txId: opttx.txId
+  })
   // wait for transaction to be confirmed
   return await deployer.waitForConfirmation(opttx.txId);
 
@@ -109,7 +123,7 @@ async function asaOptIn(deployer, optInAccount, assetID) {
   //await printAssetHolding(algodclient, master, assetID);
 }
 
-async function transferAsset(deployer, assetID, fromAccount, toAccountAddr, amount) {
+exports.transferAsset = async function (deployer, assetID, fromAccount, toAccountAddr, amount) {
   // Transfer New Asset:
 
   // First update changing transaction parameters
@@ -132,51 +146,18 @@ async function transferAsset(deployer, assetID, fromAccount, toAccountAddr, amou
   let xtxn = algosdk.makeAssetTransferTxnWithSuggestedParams(sender.addr, recipient, closeRemainderTo, revocationTarget,
     amount,  note, assetID, params);
   // Must be signed by the account sending the asset
-  console.log("sender", sender, sender.sk)
   rawSignedTxn = xtxn.signTxn(sender.sk)
   let xtx = (await deployer.algodClient.sendRawTransaction(rawSignedTxn).do());
-  console.log("Transaction : " + xtx.txId);
+  console.log("Transferring:", {
+    from: sender.addr,
+    to: recipient,
+    amount: amount,
+    assetID: assetID,
+    txId: xtx.txId
+  })
   // wait for transaction to be confirmed
   await deployer.waitForConfirmation(xtx.txId);
 
   //console.log("Master Account = " + master);
   //await printAssetHolding(deployer.algodClient, master, assetID);
 }
-
-async function run(runtimeEnv, accounts, deployer) {
-  console.log("Script has started execution!")
-
-  const masterAccount = deployer.accounts[0]
-  const asaCreatorAccount = algosdk.generateAccount();
-  const asaOptInAccount = algosdk.generateAccount();
-  console.log("generated accounts:", asaCreatorAccount, asaOptInAccount)
-
-  await transferMicroAlgos(deployer, masterAccount, asaCreatorAccount.addr, 1000000)
-  await transferMicroAlgos(deployer, masterAccount, asaOptInAccount.addr, 1000000)
-
-  const asaInfo = await deployer.deployASA("myASA", {
-    creator: asaCreatorAccount
-    //totalFee: 1001,
-    //feePerByte: 10,
-    //firstValid: 10,
-    //validRounds: 1002
-  })
-  console.log(asaInfo)
-
-  const assetID = asaInfo.assetIndex
-  await printCreatedAsset(deployer, asaCreatorAccount.addr, assetID);
-
-  await asaOptIn(deployer, asaOptInAccount, assetID)
-
-  await printAssetHolding(deployer, asaCreatorAccount.addr, assetID);
-  await printAssetHolding(deployer, asaOptInAccount.addr, assetID);
-
-  await transferAsset(deployer, assetID, asaCreatorAccount, asaOptInAccount.addr, 1)
-
-  await printAssetHolding(deployer, asaCreatorAccount.addr, assetID);
-  await printAssetHolding(deployer, asaOptInAccount.addr, assetID);
-
-  console.log("Script execution has finished!")
-}
-
-module.exports = { default: run }
