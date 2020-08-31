@@ -1,13 +1,7 @@
-// Authors of example: Invertisment & amityadav0
 const algosdk = require('algosdk');
 
-// Function used to print created asset for account and assetid
+// Function used to print created asset for account and assetId
 exports.printCreatedAsset = async function (deployer, account, assetid) {
-  // note: if you have an indexer instance available it is easier to just use this
-  //     let accountInfo = await indexerClient.searchAccounts()
-  //    .assetID(assetIndex).do();
-  // and in the loop below use this to extract the asset for a particular account
-  // accountInfo['accounts'][idx][account]);
   let accountInfo = await deployer.algodClient.accountInformation(account).do();
   for (idx = 0; idx < accountInfo['created-assets'].length; idx++) {
     let scrutinizedAsset = accountInfo['created-assets'][idx];
@@ -23,16 +17,10 @@ exports.printCreatedAsset = async function (deployer, account, assetid) {
 
 // Print specific account's ASA info.
 exports.printAssetHolding = async function (deployer, account, assetid) {
-  // note: if you have an indexer instance available it is easier to just use this
-  //     let accountInfo = await indexerClient.searchAccounts()
-  //    .assetID(assetIndex).do();
-  // and in the loop below use this to extract the asset for a particular account
-  // accountInfo['accounts'][idx][account]);
   let accountInfo = await deployer.algodClient.accountInformation(account).do();
-  for (idx = 0; idx < accountInfo['assets'].length; idx++) {
-    let scrutinizedAsset = accountInfo['assets'][idx];
-    if (scrutinizedAsset['asset-id'] == assetid) {
-      console.log("Asset Holding Info:", scrutinizedAsset, accountInfo);
+  for (const asset of accountInfo['assets']) {
+    if (asset['asset-id'] == assetid) {
+      console.log("Asset Holding Info:", asset, accountInfo);
       break;
     }
   }
@@ -45,7 +33,7 @@ exports.printAssets = async function (deployer, account) {
   console.log("Account's ALGO (microalgos):", accountInfo["amount-without-pending-rewards"])
 }
 
-//// Transfer ALGO
+// Transfer ALGO
 exports.transferMicroAlgos = async function (deployer, fromAccount, toAccountAddr, amountMicroAlgos) {
 
   let params = await deployer.algodClient.getTransactionParams().do();
@@ -61,17 +49,13 @@ exports.transferMicroAlgos = async function (deployer, fromAccount, toAccountAdd
   let signedTxn = txn.signTxn(fromAccount.sk);
   let txId = txn.txID().toString();
   const pendingTx = await deployer.algodClient.sendRawTransaction(signedTxn).do();
-  console.log("transferring algo (in micro algos):", {
+  console.log("Transferring algo (in micro algos):", {
     from: fromAccount.addr,
     to: receiver,
     amount: amountMicroAlgos,
     txid: pendingTx.txId
   })
   return await deployer.waitForConfirmation(pendingTx.txId)
-
-  //let confirmedTxn = await deployer.algodClient.pendingTransactionInformation(txId).do();
-  //console.log("Transaction information: %o", confirmedTxn.txn.txn);
-  //console.log("Decoded note: %s", algosdk.decodeObj(confirmedTxn.txn.txn.note));
 }
 
 exports.asaOptIn = async function (deployer, optInAccount, assetID) {
@@ -79,7 +63,7 @@ exports.asaOptIn = async function (deployer, optInAccount, assetID) {
   // Opting in to transact with the new asset
   // Allow accounts that want recieve the new asset
   // Have to opt in. To do this they send an asset transfer
-  // of the new asset to themseleves 
+  // of the new asset to themselves
 
   // First update changing transaction parameters
   // We will account for changing transaction parameters
@@ -117,10 +101,6 @@ exports.asaOptIn = async function (deployer, optInAccount, assetID) {
   })
   // wait for transaction to be confirmed
   return await deployer.waitForConfirmation(opttx.txId);
-
-  ////You should now see the new asset listed in the account information
-  //console.log("Master = " + master);
-  //await printAssetHolding(algodclient, master, assetID);
 }
 
 exports.transferAsset = async function (deployer, assetID, fromAccount, toAccountAddr, amount) {
@@ -157,7 +137,4 @@ exports.transferAsset = async function (deployer, assetID, fromAccount, toAccoun
   })
   // wait for transaction to be confirmed
   await deployer.waitForConfirmation(xtx.txId);
-
-  //console.log("Master Account = " + master);
-  //await printAssetHolding(deployer.algodClient, master, assetID);
 }
