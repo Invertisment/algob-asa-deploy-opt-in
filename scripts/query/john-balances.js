@@ -11,7 +11,6 @@ const {
 async function run(runtimeEnv, accounts, deployer) {
 
   const johnAccount = deployer.accountsByName.get("john-account");
-  console.log(johnAccount)
 
   // print one by one
   //const goldAssetID = deployer.algodClient.asa.get("gold").assetIndex
